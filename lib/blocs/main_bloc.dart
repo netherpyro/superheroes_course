@@ -76,8 +76,7 @@ class MainBloc {
   }
 
   void removeFavorite() {
-    // var currentFavorites =  List<SuperheroInfo>.from(favoriteSuperheroesSubject.value);
-    final List<SuperheroInfo> currentFavorites = favoriteSuperheroesSubject.value;
+    final currentFavorites =  List<SuperheroInfo>.from(favoriteSuperheroesSubject.value);
     if (currentFavorites.isEmpty) {
       currentFavorites.addAll(SuperheroInfo.mocked);
       favoriteSuperheroesSubject.add(currentFavorites);
