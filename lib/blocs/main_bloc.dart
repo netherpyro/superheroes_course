@@ -6,8 +6,10 @@ class MainBloc {
   static const minSymbols = 3;
 
   final BehaviorSubject<MainPageState> stateSubject = BehaviorSubject();
+
   final favoriteSuperheroesSubject =
       BehaviorSubject<List<SuperheroInfo>>.seeded(SuperheroInfo.mocked);
+
   final searchedSuperheroesSubject = BehaviorSubject<List<SuperheroInfo>>();
   final currentTextSubject = BehaviorSubject<String>.seeded("");
 
@@ -80,9 +82,10 @@ class MainBloc {
     if (currentFavorites.isEmpty) {
       currentFavorites.addAll(SuperheroInfo.mocked);
       favoriteSuperheroesSubject.add(currentFavorites);
+    } else {
+      currentFavorites.removeLast();
+      favoriteSuperheroesSubject.add(currentFavorites);
     }
-    currentFavorites.removeLast();
-    favoriteSuperheroesSubject.add(currentFavorites);
   }
 
   void dispose() {
