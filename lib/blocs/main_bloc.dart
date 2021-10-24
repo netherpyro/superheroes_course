@@ -1,35 +1,28 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:http/http.dart' as http;
+import 'package:superheroes/exception/api_exception.dart';
+import 'package:superheroes/model/superhero.dart';
 
 class MainBloc {
   static const minSymbols = 3;
 
   final BehaviorSubject<MainPageState> stateSubject = BehaviorSubject();
-
   final favoriteSuperheroesSubject =
       BehaviorSubject<List<SuperheroInfo>>.seeded(SuperheroInfo.mocked);
-
   final searchedSuperheroesSubject = BehaviorSubject<List<SuperheroInfo>>();
   final currentTextSubject = BehaviorSubject<String>.seeded("");
 
   StreamSubscription? textSubscription;
   StreamSubscription? searchSubscription;
 
-  Stream<List<SuperheroInfo>> observeFavoriteSuperheroes() => favoriteSuperheroesSubject;
+  http.Client? client;
 
-  Stream<List<SuperheroInfo>> observeSearchedSuperheroes() => searchedSuperheroesSubject;
-
-  Future<List<SuperheroInfo>> search(final String text) async {
-    await Future.delayed(Duration(milliseconds: 500));
-    return SuperheroInfo.mocked
-        .where((i) => i.name.toLowerCase().contains(text.toLowerCase()))
-        .toList();
-  }
-
-  Stream<MainPageState> observeMainPageState() => stateSubject;
-
-  MainBloc() {
+  MainBloc({this.client}) {
     stateSubject.add(MainPageState.noFavorites);
 
     textSubscription = Rx.combineLatest2<String, List<SuperheroInfo>, MainPageStateInfo>(
@@ -52,18 +45,61 @@ class MainBloc {
     });
   }
 
+  Stream<List<SuperheroInfo>> observeFavoriteSuperheroes() => favoriteSuperheroesSubject;
+
+  Stream<List<SuperheroInfo>> observeSearchedSuperheroes() => searchedSuperheroesSubject;
+
+  Future<List<SuperheroInfo>> search(final String text) async {
+    final token = dotenv.env["SUPERHERO_TOKEN"];
+    final response = await (client ??= http.Client())
+        .get(Uri.parse("https://superheroapi.com/api/$token/search/$text"));
+    if (response.statusCode >= 500 && response.statusCode <= 599) {
+      throw ApiException("Server error happened");
+    }
+    if (response.statusCode >= 400 && response.statusCode <= 499) {
+      throw ApiException("Client error happened");
+    }
+
+    final decoded = json.decode(response.body);
+    if (decoded["response"] == "success") {
+      final List<dynamic> results = decoded['results'];
+      final List<Superhero> superheroes =
+          results.map((rawSuperhero) => Superhero.fromJson(rawSuperhero)).toList();
+      final List<SuperheroInfo> found = superheroes
+          .map((superhero) => SuperheroInfo(
+                name: superhero.name,
+                realName: superhero.biography.fullName,
+                imageUrl: superhero.image.url,
+              ))
+          .toList();
+      return found;
+    } else if (decoded['response'] == 'error') {
+      if (decoded['error'] == 'character with given name not found') {
+        return [];
+      }
+      throw ApiException("Client error happened");
+    }
+    throw ApiException("Client error happened");
+  }
+
+  Stream<MainPageState> observeMainPageState() => stateSubject;
+
   void searchForSuperheroes(final String text) {
     stateSubject.add(MainPageState.loading);
-    searchSubscription = search(text).asStream().listen((searchResults) {
-      if (searchResults.isEmpty) {
-        stateSubject.add(MainPageState.nothingFound);
-      } else {
-        searchedSuperheroesSubject.add(searchResults);
-        stateSubject.add(MainPageState.searchResults);
-      }
-    }, onError: (error, stackTrace) {
-      stateSubject.add(MainPageState.loadingError);
-    });
+    searchSubscription = search(text).asStream().listen(
+      (searchResults) {
+        if (searchResults.isEmpty) {
+          stateSubject.add(MainPageState.nothingFound);
+        } else {
+          searchedSuperheroesSubject.add(searchResults);
+          stateSubject.add(MainPageState.searchResults);
+        }
+      },
+      onError: (error, stackTrace) {
+        print(error);
+        stateSubject.add(MainPageState.loadingError);
+      },
+    );
   }
 
   void nextState() {
@@ -78,14 +114,20 @@ class MainBloc {
   }
 
   void removeFavorite() {
-    final currentFavorites =  List<SuperheroInfo>.from(favoriteSuperheroesSubject.value);
-    if (currentFavorites.isEmpty) {
-      currentFavorites.addAll(SuperheroInfo.mocked);
-      favoriteSuperheroesSubject.add(currentFavorites);
-    } else {
-      currentFavorites.removeLast();
-      favoriteSuperheroesSubject.add(currentFavorites);
+    var v = List<SuperheroInfo>.from(favoriteSuperheroesSubject.value);
+    if (v.isEmpty) {
+      v.addAll(SuperheroInfo.mocked);
+      favoriteSuperheroesSubject.add(v);
+      return;
     }
+    v.removeLast();
+    favoriteSuperheroesSubject.add(v);
+    return;
+  }
+
+  void retry() {
+    // searchForSuperheroes(currentTextSubject.valueOrNull ?? '');
+    searchForSuperheroes(currentTextSubject.value);
   }
 
   void dispose() {
@@ -95,6 +137,8 @@ class MainBloc {
     currentTextSubject.close();
 
     textSubscription?.cancel();
+
+    client?.close();
   }
 }
 
