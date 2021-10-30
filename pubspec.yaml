@@ -10,14 +10,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.3
+  cupertino_icons: ^1.0.2
   rxdart: ^0.27.1
   provider: ^5.0.0
   google_fonts: ^2.1.0
   http: ^0.13.3
-  flutter_dotenv: ^5.0.2
+  flutter_dotenv: ^5.0.0
   json_annotation: ^4.0.0
   cached_network_image: ^3.1.0
+  shared_preferences: ^2.0.6
 
 
 dev_dependencies:
@@ -26,6 +27,8 @@ dev_dependencies:
   network_image_mock: ^2.0.1
   build_runner: ^2.0.6
   json_serializable: ^4.0.0
+  golden_toolkit: ^0.10.0
+  mockito: ^5.0.15
 
 
 flutter:
@@ -33,5 +36,6 @@ flutter:
   assets:
     - google_fonts/
     - assets/images/
+    - assets/icons/
     - .env
 

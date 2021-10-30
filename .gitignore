@@ -9,6 +9,7 @@
 .history
 .svn/
 *.env
+**/failures/*.png
 
 # IntelliJ related
 *.iml

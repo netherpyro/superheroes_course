@@ -5,7 +5,6 @@ import 'package:superheroes/blocs/main_bloc.dart';
 import 'package:superheroes/pages/superhero_page.dart';
 import 'package:superheroes/resources/superheroes_colors.dart';
 import 'package:superheroes/resources/superheroes_images.dart';
-import 'package:superheroes/widgets/action_button.dart';
 import 'package:superheroes/widgets/info_with_button.dart';
 import 'package:superheroes/widgets/superhero_card.dart';
 
@@ -83,8 +82,6 @@ class SearchWidget extends StatefulWidget {
 class _SearchWidgetState extends State<SearchWidget> {
   final TextEditingController controller = TextEditingController();
 
-  // можно   final controller = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -119,7 +116,7 @@ class _SearchWidgetState extends State<SearchWidget> {
               filled: true,
               fillColor: SuperheroesColors.indigo75,
               prefixIcon: Icon(Icons.search, color: Colors.white54, size: 24),
-              suffix: GestureDetector(
+              suffixIcon: GestureDetector(
                 onTap: () => controller.clear(),
                 child: Icon(Icons.clear, color: Colors.white),
               ),
@@ -167,50 +164,27 @@ class MainPageStateWidget extends StatelessWidget {
           case MainPageState.minSymbols:
             return MinSymbolsWidget();
           case MainPageState.favorites:
-            return Stack(
-              children: [
-                SuperheroesList(
-                  title: "Your favorites",
-                  stream: bloc.observeFavoriteSuperheroes(),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ActionButton(
-                    text: "Remove".toUpperCase(),
-                    onTap: () => bloc.removeFavorite(),
-                  ),
-                ),
-              ],
+            return SuperheroesList(
+              title: "Your favorites",
+              stream: bloc.observeFavoriteSuperheroes(),
+              ableToSwipe: true,
             );
           case MainPageState.searchResults:
             return SuperheroesList(
               title: "Search results",
               stream: bloc.observeSearchedSuperheroes(),
+              ableToSwipe: false,
             );
           case MainPageState.noFavorites:
-            return Stack(
-              children: [
-                InfoWithButton(
-                  title: "No favorites yet",
-                  subtitle: "Search and add",
-                  buttonText: "Search",
-                  assetImage: SuperheroesImages.ironman,
-                  imageHeight: 119,
-                  imageWidth: 108,
-                  imageTopPadding: 9,
-                  onTap: ()  => searchFieldFocusNode.requestFocus(),
-                  //{
-                  // context.dependOnInheritedWidgetOfExactType<MainIW>()!.focus.requestFocus();
-                  // },
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ActionButton(
-                    text: "Remove".toUpperCase(),
-                    onTap: () => bloc.removeFavorite(),
-                  ),
-                ),
-              ],
+            return InfoWithButton(
+              title: "No favorites yet",
+              subtitle: "Search and add",
+              buttonText: "Search",
+              assetImage: SuperheroesImages.ironman,
+              imageHeight: 119,
+              imageWidth: 108,
+              imageTopPadding: 9,
+              onTap: () => searchFieldFocusNode.requestFocus(),
             );
           case MainPageState.nothingFound:
             return InfoWithButton(
@@ -221,10 +195,7 @@ class MainPageStateWidget extends StatelessWidget {
               imageHeight: 112,
               imageWidth: 84,
               imageTopPadding: 16,
-              onTap: ()  => searchFieldFocusNode.requestFocus(),
-              //{
-              // context.dependOnInheritedWidgetOfExactType<MainIW>()!.focus.requestFocus();
-              // },
+              onTap: () => searchFieldFocusNode.requestFocus(),
             );
           case MainPageState.loadingError:
             return InfoWithButton(
@@ -253,11 +224,13 @@ class MainPageStateWidget extends StatelessWidget {
 class SuperheroesList extends StatelessWidget {
   final String title;
   final Stream<List<SuperheroInfo>> stream;
+  final bool ableToSwipe;
 
   const SuperheroesList({
     Key? key,
     required this.title,
     required this.stream,
+    required this.ableToSwipe,
   }) : super(key: key);
 
   @override
@@ -274,31 +247,12 @@ class SuperheroesList extends StatelessWidget {
           itemCount: superheroes.length + 1,
           itemBuilder: (BuildContext context, int index) {
             if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 90, bottom: 12),
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              );
+              return ListTitleWidget(title: title);
             }
             final SuperheroInfo item = superheroes[index - 1];
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SuperheroCard(
-                superheroInfo: item,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SuperheroPage(name: item.name),
-                    ),
-                  );
-                },
-              ),
+            return ListTile(
+              superhero: item,
+              ableToSwipe: ableToSwipe,
             );
           },
           separatorBuilder: (BuildContext context, int index) {
@@ -306,6 +260,99 @@ class SuperheroesList extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class ListTile extends StatelessWidget {
+  final SuperheroInfo superhero;
+  final bool ableToSwipe;
+
+  const ListTile({
+    Key? key,
+    required this.superhero,
+    required this.ableToSwipe,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = Provider.of<MainBloc>(context, listen: false);
+    final card = SuperheroCard(
+      superheroInfo: superhero,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SuperheroPage(id: superhero.id),
+          ),
+        );
+      },
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ableToSwipe
+          ? Dismissible(
+              key: ValueKey(superhero.id),
+              background: BackgroundCard(direction: DismissDirection.startToEnd),
+              secondaryBackground: BackgroundCard(direction: DismissDirection.endToStart),
+              onDismissed: (_) => bloc.removeFromFavorites(superhero.id),
+              child: card)
+          : card,
+    );
+  }
+}
+
+class BackgroundCard extends StatelessWidget {
+  final DismissDirection direction;
+
+  const BackgroundCard({
+    Key? key,
+    required this.direction,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      height: 70,
+      alignment:
+          direction == DismissDirection.startToEnd ? Alignment.centerLeft : Alignment.centerRight,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: SuperheroesColors.red,
+      ),
+      child: Text(
+        "Remove\nfrom\nfavorites".toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+        textAlign: direction == DismissDirection.startToEnd ? TextAlign.left : TextAlign.right,
+      ),
+    );
+  }
+}
+
+class ListTitleWidget extends StatelessWidget {
+  const ListTitleWidget({
+    Key? key,
+    required this.title,
+  }) : super(key: key);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 90, bottom: 12),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
