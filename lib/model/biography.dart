@@ -15,14 +15,19 @@ class Biography {
     required this.fullName,
     required this.alignment,
     required this.aliases,
-    required this.placeOfBirth,
+    required this.placeOfBirth
   });
 
-  AlignmentInfo? get alignmentInfo => AlignmentInfo.fromAlignment(alignment);
+  String getAliases(List<String> values) {
+    return values.join(', ');
+  }
 
-  factory Biography.fromJson(final Map<String, dynamic> json) => _$BiographyFromJson(json);
+  factory Biography.fromJson(final Map<String, dynamic> json) =>
+      _$BiographyFromJson(json);
 
   Map<String, dynamic> toJson() => _$BiographyToJson(this);
+
+  AlignmentInfo? get alignmentInfo => AlignmentInfo.fromAlignment(alignment);
 
   @override
   String toString() {
@@ -41,5 +46,8 @@ class Biography {
 
   @override
   int get hashCode =>
-      fullName.hashCode ^ alignment.hashCode ^ aliases.hashCode ^ placeOfBirth.hashCode;
+      fullName.hashCode ^
+      alignment.hashCode ^
+      aliases.hashCode ^
+      placeOfBirth.hashCode;
 }

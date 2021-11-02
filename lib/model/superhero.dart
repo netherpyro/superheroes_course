@@ -1,7 +1,7 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:superheroes/model/biography.dart';
 import 'package:superheroes/model/powerstats.dart';
 import 'package:superheroes/model/server_image.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'superhero.g.dart';
 
@@ -21,7 +21,8 @@ class Superhero {
     required this.powerstats,
   });
 
-  factory Superhero.fromJson(final Map<String, dynamic> json) => _$SuperheroFromJson(json);
+  factory Superhero.fromJson(final Map<String, dynamic> json) =>
+      _$SuperheroFromJson(json);
 
   Map<String, dynamic> toJson() => _$SuperheroToJson(this);
 
@@ -43,7 +44,9 @@ class Superhero {
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ biography.hashCode ^ image.hashCode ^ powerstats.hashCode;
-
-
+      id.hashCode ^
+      name.hashCode ^
+      biography.hashCode ^
+      image.hashCode ^
+      powerstats.hashCode;
 }

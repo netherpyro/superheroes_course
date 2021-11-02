@@ -5,8 +5,6 @@ import 'package:superheroes/model/alignment_info.dart';
 import 'package:superheroes/resources/superheroes_colors.dart';
 import 'package:superheroes/resources/superheroes_images.dart';
 
-import '../resources/superheroes_colors.dart';
-
 class SuperheroCard extends StatelessWidget {
   final SuperheroInfo superheroInfo;
   final VoidCallback onTap;
@@ -31,7 +29,7 @@ class SuperheroCard extends StatelessWidget {
         child: Row(
           children: [
             _AvatarWidget(superheroInfo: superheroInfo),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             NameAndRealNameWidget(superheroInfo: superheroInfo),
             if (superheroInfo.alignmentInfo != null)
               AlignmentWidget(
@@ -63,17 +61,19 @@ class AlignmentWidget extends StatelessWidget {
     return RotatedBox(
       quarterTurns: 1,
       child: Container(
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(vertical: 6),
         height: 24,
         width: 70,
-        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: alignmentInfo.color,
-          borderRadius: borderRadius,
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 6),
+            color: alignmentInfo.color, borderRadius: borderRadius),
         child: Text(
           alignmentInfo.name.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 10),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+          ),
         ),
       ),
     );
@@ -92,23 +92,19 @@ class NameAndRealNameWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             superheroInfo.name.toUpperCase(),
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
           ),
           Text(
             superheroInfo.realName,
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
-              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -128,29 +124,26 @@ class _AvatarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 70,
-      width: 70,
       color: Colors.white24,
+      width: 70,
+      height: 70,
       child: CachedNetworkImage(
         imageUrl: superheroInfo.imageUrl,
-        height: 70,
         width: 70,
+        height: 70,
         fit: BoxFit.cover,
+        progressIndicatorBuilder: (context, url, downloadProgress) => Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(value: downloadProgress.progress),
+          ),
+        ),
         errorWidget: (context, url, error) => Center(
           child: Image.asset(
             SuperheroesImages.unknown,
-            height: 62,
             width: 20,
-          ),
-        ),
-        progressIndicatorBuilder: (context, url, progress) => Container(
-          alignment: Alignment.center,
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: SuperheroesColors.blue,
-            value: progress.progress,
+            height: 62,
           ),
         ),
       ),

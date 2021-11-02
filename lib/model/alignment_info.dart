@@ -9,10 +9,10 @@ class AlignmentInfo {
   const AlignmentInfo._(this.name, this.color);
 
   static const bad = AlignmentInfo._("bad", SuperheroesColors.red);
-  static const neutral = AlignmentInfo._("neutral", SuperheroesColors.grey);
   static const good = AlignmentInfo._("good", SuperheroesColors.green);
+  static const neutral = AlignmentInfo._("neutral", SuperheroesColors.grey);
 
-  static AlignmentInfo? fromAlignment(final String alignment) {
+  static AlignmentInfo? fromAlignment(final String alignment){
     if (alignment == "bad") {
       return bad;
     } else if (alignment == "good") {
@@ -22,4 +22,5 @@ class AlignmentInfo {
     }
     return null;
   }
+
 }

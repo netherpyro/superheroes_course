@@ -4,17 +4,17 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:superheroes/model/superhero.dart';
 
-class FavoriteSuperheroesStorage {
+class FavoriteSuperHeroStorage {
   static const _key = "favorite_superheroes";
 
   final updater = PublishSubject<Null>();
 
-  static FavoriteSuperheroesStorage? _instance;
+  static FavoriteSuperHeroStorage? _instance;
 
-  factory FavoriteSuperheroesStorage.getInstance() =>
-      _instance ??= FavoriteSuperheroesStorage._internal();
+  factory FavoriteSuperHeroStorage.getInstance() =>
+      _instance ??= FavoriteSuperHeroStorage._internal();
 
-  FavoriteSuperheroesStorage._internal();
+  FavoriteSuperHeroStorage._internal();
 
   Future<bool> addToFavorites(final Superhero superhero) async {
     final rawSuperheroes = await _getRawSuperheroes();
@@ -33,10 +33,10 @@ class FavoriteSuperheroesStorage {
     return sp.getStringList(_key) ?? [];
   }
 
-  Future<bool> _setRawSuperheroes(final List<String> rawSuperheroes) async {
+  Future<bool> _setRawSuperheroes(List<String> rawSuperheroes) async {
     final sp = await SharedPreferences.getInstance();
     final result = sp.setStringList(_key, rawSuperheroes);
-    updater.add(null);
+    updater.add(null); //уведомление о новом зн-ии
     return result;
   }
 
@@ -48,8 +48,10 @@ class FavoriteSuperheroesStorage {
   }
 
   Future<bool> _setSuperheroes(final List<Superhero> superheroes) async {
-    final rawSuperheroes = superheroes.map((superhero) => json.encode(superhero.toJson())).toList();
-    return _setRawSuperheroes(rawSuperheroes);
+    final rawRawSuperheroes = superheroes
+        .map((superhero) => json.encode(superhero.toJson()))
+        .toList();
+    return _setRawSuperheroes(rawRawSuperheroes);
   }
 
   Future<Superhero?> getSuperhero(final String id) async {
@@ -65,16 +67,16 @@ class FavoriteSuperheroesStorage {
   Stream<List<Superhero>> observeFavoriteSuperheroes() async* {
     yield await _getSuperheroes();
     await for (final _ in updater) {
-      yield await _getSuperheroes();
+      yield await _getSuperheroes(); //добавление нового зн-ия
     }
   }
 
   Stream<bool> observeIsFavorite(final String id) {
-    return observeFavoriteSuperheroes()
-        .map((superheroes) => superheroes.any((superhero) => superhero.id == id));
+    return observeFavoriteSuperheroes().map(
+        (superheroes) => superheroes.any((superhero) => superhero.id == id));
   }
 
-  Future<bool> updateIfInFavorites(final Superhero newSuperhero) async {
+  Future<bool> updateIfInFavorite(final Superhero newSuperhero) async {
     final superheroes = await _getSuperheroes();
     final index = superheroes.indexWhere((superhero) => superhero.id == newSuperhero.id);
     if (index == -1) {

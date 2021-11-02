@@ -5,9 +5,9 @@ import 'package:superheroes/blocs/main_bloc.dart';
 import 'package:superheroes/pages/superhero_page.dart';
 import 'package:superheroes/resources/superheroes_colors.dart';
 import 'package:superheroes/resources/superheroes_images.dart';
+import 'package:superheroes/widgets/action_button.dart';
 import 'package:superheroes/widgets/info_with_button.dart';
 import 'package:superheroes/widgets/superhero_card.dart';
-
 import 'package:http/http.dart' as http;
 
 class MainPage extends StatefulWidget {
@@ -21,13 +21,11 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   late MainBloc bloc;
-  late FocusNode focus;
 
   @override
   void initState() {
     super.initState();
     bloc = MainBloc(client: widget.client);
-    focus = FocusNode();
   }
 
   @override
@@ -46,24 +44,43 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     bloc.dispose();
-    focus.dispose();
     super.dispose();
   }
 }
 
-class MainPageContent extends StatelessWidget {
-  final FocusNode searchFieldFocusNode = FocusNode();
+class MainPageContent extends StatefulWidget {
+  @override
+  _MainPageContentState createState() => _MainPageContentState();
+}
+
+class _MainPageContentState extends State<MainPageContent> {
+  late final FocusNode myFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    myFocusNode = FocusNode();
+    SchedulerBinding.instance?.addPostFrameCallback((timeStamp) {
+      myFocusNode.addListener(() {
+        setState(() {});
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    myFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        MainPageStateWidget(searchFieldFocusNode: searchFieldFocusNode),
+        MainPageStateWidget(focusNode: myFocusNode),
         Padding(
-          padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
-          child: SearchWidget(
-            searchFieldFocusNode: searchFieldFocusNode,
-          ),
+          padding: const EdgeInsets.only(top: 12.0, left: 16, right: 16),
+          child: SearchWidget(focusNode: myFocusNode),
         ),
       ],
     );
@@ -71,9 +88,9 @@ class MainPageContent extends StatelessWidget {
 }
 
 class SearchWidget extends StatefulWidget {
-  final FocusNode searchFieldFocusNode;
+  final FocusNode focusNode;
 
-  const SearchWidget({Key? key, required this.searchFieldFocusNode}) : super(key: key);
+  const SearchWidget({Key? key, required this.focusNode}) : super(key: key);
 
   @override
   _SearchWidgetState createState() => _SearchWidgetState();
@@ -81,76 +98,88 @@ class SearchWidget extends StatefulWidget {
 
 class _SearchWidgetState extends State<SearchWidget> {
   final TextEditingController controller = TextEditingController();
+  late double width = 1;
+  late Color color = Colors.white24;
 
   @override
   void initState() {
     super.initState();
     SchedulerBinding.instance?.addPostFrameCallback((timeStamp) {
       final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
-      controller.addListener(() => bloc.updateText(controller.text));
+      controller.addListener(() {
+        bloc.updateText(controller.text);
+        setState(() {
+          if (controller.text.length == 0) {
+            width = 1;
+            color = Colors.white24;
+          } else {
+            width = 2;
+            color = Colors.white;
+          }
+        });
+      });
     });
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
-    return StreamBuilder<Object>(
-        stream: bloc.currentTextSubject,
-        builder: (context, snapshot) {
-          return TextField(
-            // focusNode: context.dependOnInheritedWidgetOfExactType<MainIW>()!.focus,
-            focusNode: widget.searchFieldFocusNode,
-            controller: controller,
-            cursorColor: Colors.white,
-            textInputAction: TextInputAction.search,
-            textCapitalization: TextCapitalization.words,
-            style: TextStyle(fontWeight: FontWeight.w400, fontSize: 20, color: Colors.white),
-            decoration: InputDecoration(
-              hintText: "Search",
-              hintStyle: TextStyle(
-                color: Colors.white54,
-                fontSize: 20,
-                fontWeight: FontWeight.w400,
-              ),
-              isDense: true,
-              filled: true,
-              fillColor: SuperheroesColors.indigo75,
-              prefixIcon: Icon(Icons.search, color: Colors.white54, size: 24),
-              suffixIcon: GestureDetector(
-                onTap: () => controller.clear(),
-                child: Icon(Icons.clear, color: Colors.white),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: snapshot.hasData && snapshot.data != "" ? Colors.white : Colors.white24,
-                  width: snapshot.hasData && snapshot.data != "" ? 2 : 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.white, width: 2),
-              ),
-            ),
-          );
-        });
+    return TextField(
+      focusNode: widget.focusNode,
+      textCapitalization: TextCapitalization.words,
+      textInputAction: TextInputAction.search,
+      cursorColor: Colors.white,
+      controller: controller,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w400,
+      ),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: SuperheroesColors.indigo75,
+        isDense: true,
+        prefixIcon: Icon(
+          Icons.search,
+          color: Colors.white54,
+          size: 24,
+        ),
+        suffix: GestureDetector(
+          onTap: () => controller.clear(),
+          child: Icon(Icons.clear, color: Colors.white),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: color,
+            width: width,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.white, width: 2),
+        ),
+      ),
+    );
   }
 }
 
 class MainPageStateWidget extends StatelessWidget {
-  final FocusNode searchFieldFocusNode;
+  final FocusNode focusNode;
 
-  const MainPageStateWidget({
-    Key? key,
-    required this.searchFieldFocusNode,
-  }) : super(key: key);
+  MainPageStateWidget({Key? key, required this.focusNode}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
+
     return StreamBuilder<MainPageState>(
       stream: bloc.observeMainPageState(),
       builder: (context, snapshot) {
@@ -158,63 +187,71 @@ class MainPageStateWidget extends StatelessWidget {
           return SizedBox();
         }
         final MainPageState state = snapshot.data!;
+
         switch (state) {
           case MainPageState.loading:
             return LoadingIndicator();
-          case MainPageState.minSymbols:
-            return MinSymbolsWidget();
-          case MainPageState.favorites:
-            return SuperheroesList(
-              title: "Your favorites",
-              stream: bloc.observeFavoriteSuperheroes(),
-              ableToSwipe: true,
-            );
-          case MainPageState.searchResults:
-            return SuperheroesList(
-              title: "Search results",
-              stream: bloc.observeSearchedSuperheroes(),
-              ableToSwipe: false,
-            );
           case MainPageState.noFavorites:
-            return InfoWithButton(
-              title: "No favorites yet",
-              subtitle: "Search and add",
-              buttonText: "Search",
-              assetImage: SuperheroesImages.ironman,
-              imageHeight: 119,
-              imageWidth: 108,
-              imageTopPadding: 9,
-              onTap: () => searchFieldFocusNode.requestFocus(),
+            return Stack(
+              children: [
+                InfoWithButton(
+                  title: 'No favorites yet',
+                  subtitle: 'Search and add',
+                  assetImage: SuperheroesImages.ironMan,
+                  imageHeight: 119,
+                  imageWidth: 108,
+                  imageTopPadding: 9,
+                  buttonText: 'Search',
+                  onTap: () => focusNode.requestFocus(),
+                )
+              ],
             );
+          case MainPageState.minSymbols:
+            return MinSymbolWidget();
           case MainPageState.nothingFound:
             return InfoWithButton(
-              title: "Nothing found",
-              subtitle: "Search for something else",
-              buttonText: "Search",
+              title: 'Nothing found',
+              subtitle: 'Search for something else',
               assetImage: SuperheroesImages.hulk,
               imageHeight: 112,
               imageWidth: 84,
               imageTopPadding: 16,
-              onTap: () => searchFieldFocusNode.requestFocus(),
+              buttonText: 'Search',
+              onTap: () => focusNode.requestFocus(),
             );
           case MainPageState.loadingError:
             return InfoWithButton(
-              title: "Error happened",
-              subtitle: "Please, try again",
-              buttonText: "Retry",
+              title: 'Error happened',
+              subtitle: 'Please, try again',
               assetImage: SuperheroesImages.superman,
               imageHeight: 106,
               imageWidth: 126,
               imageTopPadding: 22,
-              onTap: () => bloc.retry(),
+              buttonText: 'Retry',
+              onTap: bloc.retry,
+            );
+          case MainPageState.searchResults:
+            return SuperheroesList(
+              title: 'Search results',
+              stream: bloc.observeSearchedSuperheroes(),
+              ableToSwipe: false,
+            );
+          case MainPageState.favorites:
+            return Stack(
+              children: [
+                SuperheroesList(
+                  title: 'Your favorites',
+                  stream: bloc.observeFavoriteSuperheroes(),
+                  ableToSwipe: true,
+                )
+              ],
             );
           default:
             return Center(
-              child: Text(
-                state.toString(),
-                style: TextStyle(color: Colors.white),
-              ),
-            );
+                child: Text(
+              state.toString(),
+              style: TextStyle(color: Colors.white),
+            ));
         }
       },
     );
@@ -239,7 +276,7 @@ class SuperheroesList extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
+          return SizedBox.shrink();
         }
         final List<SuperheroInfo> superheroes = snapshot.data!;
         return ListView.separated(
@@ -250,10 +287,7 @@ class SuperheroesList extends StatelessWidget {
               return ListTitleWidget(title: title);
             }
             final SuperheroInfo item = superheroes[index - 1];
-            return ListTile(
-              superhero: item,
-              ableToSwipe: ableToSwipe,
-            );
+            return ListTile(superhero: item, ableToSwipe: ableToSwipe);
           },
           separatorBuilder: (BuildContext context, int index) {
             return const SizedBox(height: 8);
@@ -276,58 +310,56 @@ class ListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bloc = Provider.of<MainBloc>(context, listen: false);
+    final MainBloc bloc = Provider.of<MainBloc>(context, listen: false);
     final card = SuperheroCard(
       superheroInfo: superhero,
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => SuperheroPage(id: superhero.id),
+            builder: (context) => SuperheroPage(
+              id: superhero.id,
+            ),
           ),
         );
       },
     );
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: ableToSwipe
           ? Dismissible(
               key: ValueKey(superhero.id),
-              background: BackgroundCard(direction: DismissDirection.startToEnd),
-              secondaryBackground: BackgroundCard(direction: DismissDirection.endToStart),
+              child: card,
+              background: BackgroundCard(isLeft: true),
+              secondaryBackground: BackgroundCard(isLeft: false),
               onDismissed: (_) => bloc.removeFromFavorites(superhero.id),
-              child: card)
+            )
           : card,
     );
   }
 }
 
 class BackgroundCard extends StatelessWidget {
-  final DismissDirection direction;
+  final bool isLeft;
 
-  const BackgroundCard({
-    Key? key,
-    required this.direction,
-  }) : super(key: key);
+  const BackgroundCard({Key? key, required this.isLeft}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
       height: 70,
-      alignment:
-          direction == DismissDirection.startToEnd ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: SuperheroesColors.red,
-      ),
+          borderRadius: BorderRadius.circular(8), color: SuperheroesColors.red),
       child: Text(
-        "Remove\nfrom\nfavorites".toUpperCase(),
-        style: const TextStyle(
-          fontSize: 12,
+        "Remove\nfrom\nfavorites".toUpperCase().trim(),
+        textAlign: isLeft ? TextAlign.left : TextAlign.right,
+        style: TextStyle(
           color: Colors.white,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
-        textAlign: direction == DismissDirection.startToEnd ? TextAlign.left : TextAlign.right,
       ),
     );
   }
@@ -344,7 +376,12 @@ class ListTitleWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 90, bottom: 12),
+      padding: const EdgeInsets.only(
+        top: 90,
+        left: 16,
+        right: 16,
+        bottom: 12,
+      ),
       child: Text(
         title,
         style: TextStyle(
@@ -357,8 +394,8 @@ class ListTitleWidget extends StatelessWidget {
   }
 }
 
-class MinSymbolsWidget extends StatelessWidget {
-  const MinSymbolsWidget({
+class MinSymbolWidget extends StatelessWidget {
+  const MinSymbolWidget({
     Key? key,
   }) : super(key: key);
 
@@ -367,13 +404,13 @@ class MinSymbolsWidget extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: Padding(
-        padding: EdgeInsets.only(top: 110),
+        padding: const EdgeInsets.only(top: 110.0),
         child: Text(
-          "Enter at least 3 symbols",
+          'Enter at least 3 symbols',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
             fontWeight: FontWeight.w600,
+            fontSize: 20,
           ),
         ),
       ),
@@ -391,10 +428,9 @@ class LoadingIndicator extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: Padding(
-        padding: const EdgeInsets.only(top: 110),
+        padding: EdgeInsets.only(top: 110),
         child: CircularProgressIndicator(
-          // valueColor: AlwaysStoppedAnimation<Color>(SuperheroesColors.blue),
-          color: SuperheroesColors.blue,
+          valueColor: AlwaysStoppedAnimation<Color>(SuperheroesColors.blue),
           strokeWidth: 4,
         ),
       ),
